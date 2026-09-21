@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 export default function AdminPanel() {
   const [mounted, setMounted] = useState(false);
   const [aspectMode, setAspectMode] = useState<"9:16" | "16:9" | "1:1" | "custom">("9:16");
-  const [previewMode, setPreviewMode] = useState<'cover' | 'contain' | 'fill' | 'scale-down'>('cover');
+  const [previewMode, setPreviewMode] = useState<"cover" | "contain" | "fill" | "scale-down" | "fit-to-page">("cover");
   const [customWidth, setCustomWidth] = useState(1080);
   const [customHeight, setCustomHeight] = useState(1920);
 
