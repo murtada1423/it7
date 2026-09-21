@@ -162,7 +162,7 @@ export default function AdminPanel() {
             <div className="flex items-center gap-2 bg-neutral-900/40 p-3 rounded-lg border border-neutral-800/80">
               <span className="text-xs text-neutral-300 font-medium">Preview Mode</span>
                 <select value={previewMode} onChange={(e) => {
-                  const val = e.target.value as 'cover' | 'contain' | 'fill' | 'scale-down' | 'fit-to-page';
+                  const val = e.target.value as any;
                   setPreviewMode(val);
                 try {
                   const cfg = JSON.parse(localStorage.getItem('signage_display_settings') || '{}');
