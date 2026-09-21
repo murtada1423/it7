@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 export default function AdminPanel() {
   const [mounted, setMounted] = useState(false);
   const [aspectMode, setAspectMode] = useState<"9:16" | "16:9" | "1:1" | "custom">("9:16");
-  const [previewMode, setPreviewMode] = useState<"cover" | "contain" | "fill" | "scale-down">("cover");
+  const [previewMode, setPreviewMode] = useState<any>('cover');
   const [customWidth, setCustomWidth] = useState(1080);
   const [customHeight, setCustomHeight] = useState(1920);
 
@@ -161,16 +161,14 @@ export default function AdminPanel() {
             </div>
             <div className="flex items-center gap-2 bg-neutral-900/40 p-3 rounded-lg border border-neutral-800/80">
               <span className="text-xs text-neutral-300 font-medium">Preview Mode</span>
-                <select value={previewMode} onChange={(e) => {
-                  const val = e.target.value as 'cover' | 'contain' | 'fill' | 'scale-down';
+                <select value={previewMode} onChange={(e: any) => {
+                  const val = e.target.value;
                   setPreviewMode(val);
                 try {
                   const cfg = JSON.parse(localStorage.getItem('signage_display_settings') || '{}');
                   cfg.fitMode = val;
                   localStorage.setItem('signage_display_settings', JSON.stringify(cfg));
-                  try { new BroadcastChannel('signage_sync').postMessage({ type: 'settings_changed', settings: cfg }); } catch {}
-                  window.dispatchEvent(new Event('storage'));
-                } catch {}
+                } catch (err) {}
               }} className="bg-neutral-800 text-xs text-neutral-200 border border-neutral-700 rounded px-2 py-1 outline-none focus:border-orange-500 ml-auto">
                 <option value="cover">Cover</option>
                 <option value="contain">Contain</option>
