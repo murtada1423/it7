@@ -30,27 +30,30 @@ export default function AdminPanel() {
       setUploadStatus('uploading');
       setUploadMessage('Uploading asset to storage...');
       setUploadProgress(20);
-      const extension = fileBinary.name.split('.').pop() || 'bin';
-      const fileName = `media_${Date.now()}.${extension}`;
-      const { error: uploadError } = await supabase.storage.from('signage-assets').upload(fileName, fileBinary, { cacheControl: '3600', upsert: false });
-      if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
-      setUploadProgress(60);
-      setUploadMessage('Generating public URL...');
-      const { data: publicUrlData } = supabase.storage.from('signage-assets').getPublicUrl(fileName);
-      if (!publicUrlData?.publicUrl) throw new Error('Failed to retrieve public URL for asset.');
-      const publicUrl = publicUrlData.publicUrl;
+
+      const aspect = aspectMode === 'custom' ? `${customWidth}:${customHeight}` : aspectMode;
+      const formData = new FormData();
+      formData.append('file', fileBinary);
+      formData.append('mediaType', mediaType);
+      formData.append('aspect', aspect);
+      formData.append('fitMode', previewMode);
+
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Upload failed');
+      }
+
       setUploadProgress(80);
       setUploadMessage('Broadcasting to active display...');
-      const settings = JSON.parse(localStorage.getItem('signage_display_settings') || '{}');
-      const { error: dbError } = await supabase.from('active_signage_state').update({ media_url: publicUrl, media_name: fileBinary.name, media_type: mediaType, mime_type: fileBinary.type, aspect_ratio: settings.mode ? settings.mode.replace(' Portrait', '').replace(' Landscape', '').replace(' Square', '').replace('Custom ', 'custom-') : '9:16', fit_mode: settings.fitMode || 'cover', updated_at: new Date().toISOString() }).eq('display_slot', 'primary_portrait');
-      if (dbError) throw new Error(`Database update failed: ${dbError.message}`);
-      setMediaUrl(publicUrl); // Update preview with public URL
+      const publicUrl = json.mediaUrl as string;
+      setMediaUrl(publicUrl);
       setUploadProgress(100);
       setUploadStatus('success');
       setUploadMessage('Broadcast active. All edge displays synchronized in real-time.');
       try {
         const bc = new BroadcastChannel('signage_sync');
-        bc.postMessage({ type: 'settings_changed', settings: { mode: aspectMode, fitMode: previewMode, mediaUrl: mediaUrl } });
+        bc.postMessage({ type: 'settings_changed', settings: { mode: aspectMode, fitMode: previewMode, mediaUrl: publicUrl } });
         bc.close();
       } catch {}
     } catch (err: any) {
