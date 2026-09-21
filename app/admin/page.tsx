@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 export default function AdminPanel() {
   const [mounted, setMounted] = useState(false);
   const [aspectMode, setAspectMode] = useState<"9:16" | "16:9" | "1:1" | "custom">("9:16");
-  const [previewMode, setPreviewMode] = useState<"cover" | "contain" | "fill" | "scale-down" | "fit-to-page">("cover");
+  const [previewMode, setPreviewMode] = useState<"cover" | "contain" | "fill" | "scale-down">("cover");
   const [customWidth, setCustomWidth] = useState(1080);
   const [customHeight, setCustomHeight] = useState(1920);
 
@@ -162,7 +162,7 @@ export default function AdminPanel() {
             <div className="flex items-center gap-2 bg-neutral-900/40 p-3 rounded-lg border border-neutral-800/80">
               <span className="text-xs text-neutral-300 font-medium">Preview Mode</span>
                 <select value={previewMode} onChange={(e) => {
-                  const val = e.target.value as any;
+                  const val = e.target.value as 'cover' | 'contain' | 'fill' | 'scale-down';
                   setPreviewMode(val);
                 try {
                   const cfg = JSON.parse(localStorage.getItem('signage_display_settings') || '{}');
@@ -176,7 +176,6 @@ export default function AdminPanel() {
                 <option value="contain">Contain</option>
                 <option value="fill">Fill</option>
                 <option value="scale-down">Scale Down</option>
-                <option value="fit-to-page">Fit To Page</option>
               </select>
             </div>
 
