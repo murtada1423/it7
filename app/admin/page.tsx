@@ -28,24 +28,57 @@ export default function AdminPanel() {
     }
     try {
       setUploadStatus('uploading');
-      setUploadMessage('Uploading asset to storage...');
-      setUploadProgress(20);
+      setUploadMessage('Preparing upload...');
+      setUploadProgress(15);
 
       const aspect = aspectMode === 'custom' ? `${customWidth}:${customHeight}` : aspectMode;
-      const formData = new FormData();
-      formData.append('file', fileBinary);
-      formData.append('mediaType', mediaType);
-      formData.append('aspect', aspect);
-      formData.append('fitMode', previewMode);
 
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Upload failed');
+      // 1) Ask the server for a signed upload URL (Supabase storage, no size cap)
+      const prepareRes = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'prepare', name: fileBinary.name, contentType: fileBinary.type }),
+      });
+      const prepare = await prepareRes.json();
+      if (!prepareRes.ok || !prepare.success || !prepare.uploadUrl) {
+        throw new Error(prepare.error || 'Failed to prepare upload.');
       }
 
-      setUploadProgress(80);
+      // 2) Upload the video/image directly from the browser to Supabase storage
+      setUploadMessage('Uploading to storage...');
+      const putRes = await fetch(prepare.uploadUrl, {
+        method: 'PUT',
+        body: fileBinary,
+        headers: {
+          'content-type': fileBinary.type || 'application/octet-stream',
+          'x-upsert': 'false',
+        },
+      });
+      if (!putRes.ok) {
+        throw new Error(`Storage upload failed: ${putRes.status} ${putRes.statusText}`);
+      }
+
+      // 3) Tell the server the upload is done -> broadcast + get public URL
+      setUploadProgress(75);
       setUploadMessage('Broadcasting to active display...');
+      const finalRes = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'finalize',
+          fileName: prepare.fileName,
+          mediaName: fileBinary.name,
+          mediaType,
+          mimeType: fileBinary.type,
+          aspect,
+          fitMode: previewMode,
+        }),
+      });
+      const json = await finalRes.json();
+      if (!finalRes.ok || !json.success) {
+        throw new Error(json.error || 'Finalize upload failed.');
+      }
+
       const publicUrl = json.mediaUrl as string;
       setMediaUrl(publicUrl);
       setUploadProgress(100);
